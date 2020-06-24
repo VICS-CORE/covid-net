@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+covid19predictionpaper20200426.pdf
+
+# PyTorch
+*.pt
+
+# Data
+
+*.csv
