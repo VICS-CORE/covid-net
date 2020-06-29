@@ -1,5 +1,6 @@
 import torch
 import importlib
+import numpy as np
 
 ARCHS_DIR = 'archs'
 EXPERIMENTS_DIR = 'experiments'
@@ -57,3 +58,13 @@ def load_model(experiment_id, checkpoint, v=True):
     model.eval()
     
     return model, cp
+
+def fix_anomalies(df):
+    # MH data fix: spread 17 Juns deaths over last 60 days
+    if 'new_deaths' in df.columns:
+        df.loc[(df['date']=='2020-06-17') & (df['location']=='India'), 'new_deaths'] = 353 #actual=2003
+        t = np.random.rand(60)
+        t = (2003-353) * t / sum(t)
+        df.loc[(df['date']>='2020-04-18') & (df['date']<'2020-06-17') & (df['location']=='India'), 'new_deaths'] += np.int32(t)
+
+    return df
