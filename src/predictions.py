@@ -1,6 +1,7 @@
 import datetime as dt
 import pandas as pd
 import numpy as np
+import json
 import torch
 
 from matplotlib.dates import DayLocator, AutoDateLocator, ConciseDateFormatter
@@ -180,3 +181,45 @@ def generate(states_df, STT_INFO, model, cp, feature, n_days_prediction, predict
         _ = ax.axvline(x=peak['Date'], linewidth=1, color='r')
 
     return api
+
+def export_tracker(api, fn="predictions.json"):
+    # aggregate predictions
+    api['TT'] = {}
+    for state in api:
+        if state == 'TT':
+            continue
+        for date in api[state]:
+            api['TT'][date] = api['TT'].get(date, {'delta':{}, 'total':{}})
+            for k in ['delta']: #'total'
+                api['TT'][date][k]['confirmed'] = api['TT'][date][k].get('confirmed', 0) + api[state][date][k]['confirmed']
+                api['TT'][date][k]['deceased'] = api['TT'][date][k].get('deceased', 0) + api[state][date][k]['deceased']
+                api['TT'][date][k]['recovered'] = api['TT'][date][k].get('recovered', 0) + api[state][date][k]['recovered']
+                api['TT'][date][k]['active'] = api['TT'][date][k].get('active', 0) + api[state][date][k]['active']
+
+    # export
+    with open(fn, "w") as f:
+        f.write(json.dumps(api, sort_keys=True))
+
+def export_videoplayer(api, prediction_date, fn=""):
+    # aggregate predictions
+    api['TT'] = {}
+    for state in api:
+        if state == 'TT':
+            continue
+        for date in api[state]:
+            api['TT'][date] = api['TT'].get(date, {})
+            api['TT'][date]['c'] = api['TT'][date].get('c', 0) + api[state][date]['delta']['confirmed']
+            api['TT'][date]['d'] = api['TT'][date].get('d', 0) + api[state][date]['delta']['deceased']
+            api['TT'][date]['r'] = api['TT'][date].get('r', 0) + api[state][date]['delta']['recovered']
+            api['TT'][date]['a'] = api['TT'][date].get('a', 0) + api[state][date]['delta']['active']
+
+    # read previous and export
+    try:
+        with open(fn, "r") as f:
+            out = json.loads(f.read())
+    except Exception as e:
+        out = {}
+
+    with open(fn, "w") as f:
+        out[prediction_date] = {'TT': api['TT']}
+        f.write(json.dumps(out, sort_keys=True))
