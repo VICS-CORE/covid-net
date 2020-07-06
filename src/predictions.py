@@ -200,7 +200,8 @@ def export_tracker(api, fn="predictions.json"):
     with open(fn, "w") as f:
         f.write(json.dumps(api, sort_keys=True))
 
-def export_videoplayer(api, prediction_date, fn=""):
+        
+def _aggregate_api(api):
     # aggregate predictions
     api['TT'] = {}
     for state in api:
@@ -212,7 +213,9 @@ def export_videoplayer(api, prediction_date, fn=""):
             api['TT'][date]['d'] = api['TT'][date].get('d', 0) + api[state][date]['delta']['deceased']
             api['TT'][date]['r'] = api['TT'][date].get('r', 0) + api[state][date]['delta']['recovered']
             api['TT'][date]['a'] = api['TT'][date].get('a', 0) + api[state][date]['delta']['active']
-
+        
+def export_videoplayer(api, prediction_date, fn=""):
+    _aggregate_api(api)
     # read previous and export
     try:
         with open(fn, "r") as f:
@@ -223,3 +226,20 @@ def export_videoplayer(api, prediction_date, fn=""):
     with open(fn, "w") as f:
         out[prediction_date] = {'TT': api['TT']}
         f.write(json.dumps(out, sort_keys=True))
+
+def export_csv(api, prediction_date, fn=""):
+    _aggregate_api(api)
+    
+    df_csv = pd.DataFrame(api['TT']).transpose()
+    df_csv.drop(columns=['d', 'r', 'a'], inplace=True)
+    df_csv.rename(columns={'c': prediction_date}, inplace=True)
+    
+    # read previous and export
+    try:
+        out = pd.read_csv(fn, index_col='date')
+        df_csv = out.join(df_csv).fillna(0)
+        df_csv[prediction_date] = df_csv[prediction_date].astype(int)
+    except Exception as e:
+        pass
+    finally:
+        df_csv.to_csv(fn, index_label='date')

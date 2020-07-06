@@ -12,10 +12,11 @@ parser.add_argument('-d', '--days', type=int, default=120, help='number of days 
 parser.add_argument('-o', '--offset', type=int, default=1, help='number of days of input data to skip. default 1')
 parser.add_argument('-t', '--taskidx', type=int, choices=[0, 1], default=0, help='task index to predict e.g. 0 for confirmed, 1 for deaths. default 0')
 parser.add_argument('-vpf', '--vpfile', default='', help='name of videoplayer predictions file.')
+parser.add_argument('-csv', '--csvfile', default='', help='name of csv predictions file.')
 parser.add_argument('-trf', '--trfile', default='', help='name of tracker predictions file.')
 args = parser.parse_args()
 
-assert(args.vpfile or args.trfile)
+assert(args.vpfile or args.csvfile or args.trfile)
 assert(args.offset>=1)
 
 states_df = data.get_statewise_data()
@@ -36,6 +37,8 @@ api = predictions.generate(
 
 if args.vpfile:
     predictions.export_videoplayer(api, prediction_date, args.vpfile)
+if args.csvfile:
+    predictions.export_csv(api, prediction_date, args.csvfile)
 if args.trfile:
     predictions.export_tracker(api, args.trfile)
 
