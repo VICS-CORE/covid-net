@@ -19,7 +19,7 @@ assert(args.vpfile or args.trfile)
 assert(args.offset>=1)
 
 states_df = data.get_statewise_data()
-model, cp = utils.load_model(args.experimentid, args.checkpoint)
+model, cp = utils.load_model(args.experimentid, args.checkpoint, v=False)
 prediction_date = (states_df.date.max().to_pydatetime() - dt.timedelta(days=args.offset)).strftime("%Y-%m-%d")
 print("Predicting for:", prediction_date)
 
