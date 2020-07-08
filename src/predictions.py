@@ -84,7 +84,10 @@ def generate(states_df, STT_INFO, model, cp, feature, n_days_prediction, predict
                 pred = model.predict(ip.view(-1, IP_SEQ_LEN, len(cp['config']['IP_FEATURES']))).view(OP_SEQ_LEN, len(cp['config']['OP_FEATURES']))
             except Exception as e:
                 print(state, e)
-            in_data = np.append(in_data[-IP_SEQ_LEN+OP_SEQ_LEN:, :], pred.cpu().numpy(), axis=0)
+            if IP_SEQ_LEN == OP_SEQ_LEN:
+                in_data = pred.cpu().numpy()
+            else:
+                in_data = np.append(in_data[-IP_SEQ_LEN+OP_SEQ_LEN:, :], pred.cpu().numpy(), axis=0)
             out_data = np.append(out_data, pred.cpu().numpy(), axis=0)
 
         sn = STT_INFO[state]['name']
@@ -168,8 +171,8 @@ def generate(states_df, STT_INFO, model, cp, feature, n_days_prediction, predict
         ax.xaxis.set_major_formatter(mj_f)
 
         # plot peak in agg
-        peakx = 178
-        peak = agg_df.iloc[peakx]
+        peakx = agg_df['states_agg'].idxmax()
+        peak = agg_df.loc[peakx]
         peak_desc = peak['Date'].strftime("%d-%b") + "\n" + str(int(peak['states_agg']))
         _ = ax.annotate(
             peak_desc, 
