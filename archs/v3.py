@@ -15,6 +15,8 @@ class CovidNet(tnn.Module):
         self.dropout = dropout
         self.ip_aux_size = ip_aux_size
         
+        self.device = 'cuda:0' if self.cuda.is_available() else 'cpu' # default device
+        
         self.lstm = tnn.LSTM(
             input_size=self.ip_size,
             hidden_size=self.hidden_size,
@@ -30,13 +32,13 @@ class CovidNet(tnn.Module):
     
     def forward(self, ip, aux_ip=None):
         batch_size = ip.shape[0]
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
         if self.ip_aux_size:
             c0 = self.aux(aux_ip.view(-1, self.ip_aux_size)) \
             .reshape(1, batch_size, self.hidden_size) \
             .repeat(self.num_layers, 1, 1)
         else:
-            c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+            c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
         lstm_out, _ = self.lstm(ip, (h0, c0))
         dropout_out = self.dropout(lstm_out.reshape(-1, self.hidden_size * self.ip_seq_len))
         linear_out = self.linear(dropout_out)
