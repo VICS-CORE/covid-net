@@ -15,7 +15,7 @@ class CovidNet(tnn.Module):
         self.dropout = dropout
         self.ip_aux_size = ip_aux_size
         
-        self.device = 'cuda:0' if self.cuda.is_available() else 'cpu' # default device
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu' # default device
         
         self.lstm = tnn.LSTM(
             input_size=self.ip_size,
