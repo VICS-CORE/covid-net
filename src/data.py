@@ -26,5 +26,9 @@ def fix_anomalies_owid(df):
         t = np.random.rand(60)
         t = (2003-353) * t / sum(t)
         df.loc[(df['date']>='2020-04-18') & (df['date']<'2020-06-17') & (df['location']=='India'), 'new_deaths'] += np.int32(t)
+    
+    # remove countries with population_density NaN
+    countries_pd_nan = df.loc[df['population_density'].isna()].location.unique()
+    df = df.loc[~df.location.isin(countries_pd_nan)]
 
     return df

@@ -26,13 +26,15 @@ class CovidNet(tnn.Module):
         self.sigmoid = tnn.Sigmoid()
         # if aux input present, initialise cell state with it
         if self.ip_aux_size:
-            self.aux = tnn.Linear(self.ip_aux_size, self.num_layers * self.hidden_size)
+            self.aux = tnn.Linear(self.ip_aux_size, self.hidden_size)
     
     def forward(self, ip, aux_ip=None):
         batch_size = ip.shape[0]
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
         if self.ip_aux_size:
-            c0 = self.aux(aux_ip.view(-1, self.ip_aux_size)).view(self.num_layers, batch_size, self.hidden_size)
+            c0 = self.aux(aux_ip.view(-1, self.ip_aux_size)) \
+            .reshape(1, batch_size, self.hidden_size) \
+            .repeat(self.num_layers, 1, 1)
         else:
             c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
         lstm_out, _ = self.lstm(ip, (h0, c0))
