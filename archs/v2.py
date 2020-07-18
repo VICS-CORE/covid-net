@@ -3,7 +3,7 @@ tnn = torch.nn
 
 
 class CovidNet(tnn.Module):
-    def __init__(self, ip_seq_len=1, op_seq_len=1, ip_size=1, op_size=1, hidden_size=1, num_layers=1, dropout=0.5):
+    def __init__(self, ip_seq_len=1, op_seq_len=1, ip_size=1, op_size=1, hidden_size=1, num_layers=1, dropout=0.5, **kwargs):
         super(CovidNet, self).__init__()
         
         self.ip_seq_len = ip_seq_len

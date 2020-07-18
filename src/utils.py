@@ -46,10 +46,10 @@ def load_model(experiment_id, checkpoint, v=True):
         "hidden_size": config['HIDDEN_SIZE'], 
         "num_layers": config['NUM_LAYERS'],
         "ip_size": len(config['IP_FEATURES']),
-        "op_size": len(config['OP_FEATURES'])
+        "op_size": len(config['OP_FEATURES']),
+        "dropout": config.get('DROPOUT', 0),
+        "ip_aux_size": len(config.get('AUX_FEATURES', []))
     }
-    if config['ARCH'] == 'v2':
-        args['dropout'] = config['DROPOUT']
     model = arch_mod.CovidNet(**args)
     model = model.to(DEVICE)
     if v: print ("Model initialised")

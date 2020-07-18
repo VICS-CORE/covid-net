@@ -3,7 +3,7 @@ tnn = torch.nn
 
 
 class CovidNet(tnn.Module):
-    def __init__(self, ip_seq_len=1, op_seq_len=1, ip_size=1, op_size=1, ip_aux_size=0, hidden_size=1, num_layers=1, dropout=0.5):
+    def __init__(self, ip_seq_len=1, op_seq_len=1, ip_size=1, op_size=1, ip_aux_size=0, hidden_size=1, num_layers=1, dropout=0.5, device='cpu', **kwargs):
         super(CovidNet, self).__init__()
         
         self.ip_seq_len = ip_seq_len
@@ -15,7 +15,7 @@ class CovidNet(tnn.Module):
         self.dropout = dropout
         self.ip_aux_size = ip_aux_size
         
-        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu' # default device
+        self.device = device
         
         self.lstm = tnn.LSTM(
             input_size=self.ip_size,
