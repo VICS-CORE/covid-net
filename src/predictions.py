@@ -65,7 +65,8 @@ def generate(states_df, STT_INFO, model, cp, feature, n_days_prediction, predict
     for state in STT_INFO:
         pop_fct = STT_INFO[state]["popn"] / 1000
         ip_aux = torch.tensor(
-            np.array([STT_INFO[state]["population_density"]], dtype=torch.float32)
+            np.array([STT_INFO[state]["population_density"]]),
+            dtype=torch.float32
         ).to(DEVICE)
 
         state_df = states_df.loc[states_df['state']==state][:-prediction_offset] # skip todays data. covid19 returns incomplete.
