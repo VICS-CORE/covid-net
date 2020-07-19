@@ -10,6 +10,7 @@ def get_statewise_data():
 
     data = []
     for state in ts:
+        if state=='UN': continue
         for date in ts[state]:
             ttl = ts[state][date]['total']
             data.append((state, date, ttl.get('confirmed', 0), ttl.get('deceased', 0), ttl.get('recovered', 0), ttl.get('tested', 0)))
