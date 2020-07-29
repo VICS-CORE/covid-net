@@ -28,8 +28,10 @@ def fix_anomalies_owid(df):
         t = (2003-353) * t / sum(t)
         df.loc[(df['date']>='2020-04-18') & (df['date']<'2020-06-17') & (df['location']=='India'), 'new_deaths'] += np.int32(t)
     
-    # remove countries with population_density NaN
+    # remove countries with population_density and gdp = NaN
     countries_pd_nan = df.loc[df['population_density'].isna()].location.unique()
     df = df.loc[~df.location.isin(countries_pd_nan)]
+    countries_gdp_nan = df.loc[df['gdp_per_capita'].isna()].location.unique()
+    df = df.loc[~df.location.isin(countries_gdp_nan)]
 
     return df
