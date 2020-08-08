@@ -15,9 +15,50 @@ def get_statewise_data():
             ttl = ts[state][date]['total']
             data.append((state, date, ttl.get('confirmed', 0), ttl.get('deceased', 0), ttl.get('recovered', 0), ttl.get('tested', 0)))
 
-    states_df = pd.DataFrame(data, columns=['state', 'date', 'confirmed', 'deceased', 'recovered', 'tested'])
+    states_df = pd.DataFrame(data, columns=['name', 'date', 'confirmed', 'deceased', 'recovered', 'tested'])
+    states_df['state'] = states_df['name']
     states_df['date'] = pd.to_datetime(states_df['date'])
     return states_df
+
+
+def get_districtwise_data():
+    """get historic districtwise covid data from covid19india.org"""
+    r=rq.get('https://api.covid19india.org/v4/data-all.json')
+    respObj = r.json()
+
+    ALL_STATES = list(respObj['2020-07-01'].keys())
+    ALL_STATES.remove('UN')
+    ALL_DISTTS = {}
+    for st in ALL_STATES:
+        if st == 'TT': continue
+        ALL_DISTTS[st] = respObj['2020-07-01'][st]['districts'].keys()
+        
+    states_data = []
+    distts_data = []
+    for dt in respObj:
+        for st in ALL_STATES:
+            stateObj = respObj[dt].get(st, {})
+            c = stateObj.get('total', {}).get('confirmed', 0)
+            d = stateObj.get('total', {}).get('deceased', 0)
+            r = stateObj.get('total', {}).get('recovered', 0)
+            t = stateObj.get('total', {}).get('tested', 0)
+            states_data.append((dt, st, c, d, r, t))
+            if st == 'TT': continue
+            for ds in ALL_DISTTS[st]:
+                districtObj = stateObj.get('districts', {}).get(ds, {})
+                c = districtObj.get('total', {}).get('confirmed', 0)
+                d = districtObj.get('total', {}).get('deceased', 0)
+                r = districtObj.get('total', {}).get('recovered', 0)
+                t = districtObj.get('total', {}).get('tested', 0)
+                distts_data.append((dt, st, ds, c, d, r, t))
+                
+    states_df = pd.DataFrame(states_data, columns=['date', 'state', 'confirmed', 'deceased', 'recovered', 'tested'])
+    distts_df = pd.DataFrame(distts_data, columns=['date', 'state', 'name', 'confirmed', 'deceased', 'recovered', 'tested'])
+    states_df['date'] = pd.to_datetime(states_df['date'])
+    distts_df['date'] = pd.to_datetime(distts_df['date'])
+    
+    return distts_df
+
 
 def fix_anomalies_owid(df):
     """fix anomalies in owid data frame"""
