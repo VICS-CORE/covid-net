@@ -30,7 +30,7 @@ class CovidNet(tnn.Module):
         if self.ip_aux_size:
             self.aux = tnn.Linear(self.ip_aux_size, self.hidden_size)
     
-    def forward(self, ip, aux_ip=None):
+    def forward(self, ip, aux_ip=None, **kwargs):
         batch_size = ip.shape[0]
         h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
         if self.ip_aux_size:
@@ -45,7 +45,7 @@ class CovidNet(tnn.Module):
         sigmoid_out = self.sigmoid(linear_out.view(-1, self.op_seq_len, self.op_size))
         return sigmoid_out
     
-    def predict(self, ip, aux_ip=None):
+    def predict(self, ip, aux_ip=None, **kwargs):
         with torch.no_grad():
             preds = self.forward(ip, aux_ip)
         return preds

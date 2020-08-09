@@ -22,13 +22,13 @@ class CovidNet(tnn.Module):
         self.linear = tnn.Linear(self.hidden_size * self.ip_seq_len, self.op_size * self.op_seq_len)
         self.sigmoid = tnn.Sigmoid()
     
-    def forward(self, ip):
+    def forward(self, ip, **kwargs):
         lstm_out, _ = self.lstm(ip)
         linear_out = self.linear(lstm_out.reshape(-1, self.hidden_size * self.ip_seq_len))
         sigmoid_out = self.sigmoid(linear_out.view(-1, self.op_seq_len, self.op_size))
         return sigmoid_out
     
-    def predict(self, ip):
+    def predict(self, ip, **kwargs):
         with torch.no_grad():
             preds = self.forward(ip)
         return preds
