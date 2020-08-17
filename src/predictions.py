@@ -217,6 +217,29 @@ def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset,
     return api
 
 
+def export_tracker_districts(api, fn="predictions_districts.json"):
+    api['TT'] = {} # for national agg
+    for state in api:
+        if state == 'TT': continue
+        api[state]['TT'] = {} # for state agg
+        for distt in api[state]:
+            if distt == 'TT': continue
+            # update state agg
+            for date in api[state][distt]:
+                api[state]['TT'][date] = api[state]['TT'].get(date, {'delta':{}, 'total':{}})
+                for k in ['confirmed', 'deceased', 'recovered', 'active']:
+                    api[state]['TT'][date]['delta'][k] = api[state]['TT'][date]['delta'].get(k, 0) + api[state][distt][date]['delta'][k]
+        # add state agg to national agg
+        for date in api[state]['TT']:
+            api['TT'][date] = api['TT'].get(date, {'delta':{}, 'total':{}})
+            for k in ['confirmed', 'deceased', 'recovered', 'active']:
+                api['TT'][date]['delta'][k] = api['TT'][date]['delta'].get(k, 0) + api[state]['TT'][date]['delta'][k]
+    
+    # export
+    with open(fn, "w") as f:
+        f.write(json.dumps(api, sort_keys=True))
+
+
 def export_tracker(api, fn="predictions.json"):
     # remove child
     tracker = {}
