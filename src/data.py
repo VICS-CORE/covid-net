@@ -3,6 +3,36 @@ import numpy as np
 import requests as rq
 
 
+def expand(df):
+    '''Fill missing dates in an irregular timeline'''
+    min_date = df['date'].min()
+    max_date = df['date'].max()
+    idx = pd.date_range(min_date, max_date)
+    
+    df.index = pd.DatetimeIndex(df.date)
+    df = df.drop(columns=['date'])
+    return df.reindex(idx, method='pad').reset_index().rename(columns={'index':'date'})
+
+def prefill(df, min_date):
+    '''Fill zeros from first_case_date to df.date.min()'''
+    assert(len(df.name.unique()) == 1)
+    s = df.name.unique().item()
+    min_date = min_date
+    max_date = df['date'].max()
+    idx = pd.date_range(min_date, max_date)
+    
+    df.index = pd.DatetimeIndex(df.date)
+    df = df.drop(columns=['date'])
+    return df.reindex(idx).reset_index().rename(columns={
+        'index': 'date'
+    }).fillna({
+        'name': s,
+        'confirmed': 0,
+        'deceased': 0,
+        'recovered': 0,
+        'tested': 0
+    })
+
 def get_statewise_data():
     """get historic statewise covid data from covid19india API"""
     r=rq.get('https://api.covid19india.org/v3/min/timeseries.min.json')

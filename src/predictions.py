@@ -4,6 +4,7 @@ import numpy as np
 import json
 import torch
 
+from . import data
 from matplotlib.dates import DayLocator, AutoDateLocator, ConciseDateFormatter
 
 DEVICE='cpu'
@@ -41,36 +42,6 @@ def plot_linechart(df, xcol, ycol, ax=None, title="", show_peak=True):
     
     return ax
 
-def expand(df):
-    '''Fill missing dates in an irregular timeline'''
-    min_date = df['date'].min()
-    max_date = df['date'].max()
-    idx = pd.date_range(min_date, max_date)
-    
-    df.index = pd.DatetimeIndex(df.date)
-    df = df.drop(columns=['date'])
-    return df.reindex(idx, method='pad').reset_index().rename(columns={'index':'date'})
-
-def prefill(df, min_date):
-    '''Fill zeros from first_case_date to df.date.min()'''
-    assert(len(df.name.unique()) == 1)
-    s = df.name.unique().item()
-    min_date = min_date
-    max_date = df['date'].max()
-    idx = pd.date_range(min_date, max_date)
-    
-    df.index = pd.DatetimeIndex(df.date)
-    df = df.drop(columns=['date'])
-    return df.reindex(idx).reset_index().rename(columns={
-        'index': 'date'
-    }).fillna({
-        'name': s,
-        'confirmed': 0,
-        'deceased': 0,
-        'recovered': 0,
-        'tested': 0
-    })
-
 def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset, plot=False):
     """
     Generates predictions, given states data, a model and checkpoint dictionary
@@ -107,7 +78,7 @@ def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset,
             ).to(DEVICE) if "population_density" in child else None
 
             child_df = df.loc[(df['state']==state) & (df['name']==child['name'])][:-prediction_offset] # skip todays data. covid19 returns incomplete.
-            child_df = prefill(expand(child_df), first_case_date)
+            child_df = data.prefill(data.expand(child_df), first_case_date)
             child_df['new_cases'] = child_df['confirmed'] - child_df['confirmed'].shift(1).fillna(0)
             child_df['new_deaths'] = child_df['deceased'] - child_df['deceased'].shift(1).fillna(0)
             child_df['new_recovered'] = child_df['recovered'] - child_df['recovered'].shift(1).fillna(0)
