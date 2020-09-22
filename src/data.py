@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import requests as rq
+import datetime as dt
+
+from .constants import CAPS_INFO
 
 
 def expand(df):
@@ -33,7 +36,7 @@ def prefill(df, min_date):
         'tested': 0
     })
 
-def get_statewise_data():
+def get_statewise_data(weather=False):
     """get historic statewise covid data from covid19india API"""
     r=rq.get('https://api.covid19india.org/v3/min/timeseries.min.json')
     ts = r.json()
@@ -47,6 +50,32 @@ def get_statewise_data():
 
     states_df = pd.DataFrame(data, columns=['name', 'date', 'confirmed', 'deceased', 'recovered', 'tested'])
     states_df['state'] = states_df['name']
+    
+    if weather:
+        def state2city(c):
+            return CAPS_INFO.get(c)
+        def joincol(c):
+            return c[0] + (('_' + c[1]) if c[1] else '') 
+        def ts_date(ts):
+            return dt.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+        states_df['city'] = states_df.state.apply(state2city)
+        wdf = pd.read_csv('../openweathermap/india_history_new.csv')     
+        wdf['date'] = wdf.timestamp.apply(ts_date)
+        # normalize pressure and temp
+        wdf['temp'] -= 273.15
+        wdf['temp'] /= 100
+        wdf['humidity'] /= 100
+        wdf['pressure'] /= 1000
+        # groupby and agg
+        tdf = wdf.drop(columns=['feels_like', 'temp_min', 'temp_max', 'wind_deg', 'timestamp']).groupby(['city', 'date']).agg(['min', 'max', 'mean', 'median'])
+        tdf = tdf.reset_index()
+        tdf.columns = tdf.columns.to_flat_index()
+        tdf.columns = pd.Index([joincol(i) for i in tdf.columns])
+        # merge
+        states_df['cd'] = states_df['city'] + " " + states_df['date'].astype('str')
+        tdf['cd'] = tdf['city'] + " " + tdf['date'].astype('str')
+        states_df = states_df.merge(tdf, on='cd', how='left', suffixes=('', '_y')).dropna()
+    
     states_df['date'] = pd.to_datetime(states_df['date'])
     return states_df
 

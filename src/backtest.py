@@ -150,7 +150,7 @@ def statewise(model, cp, df, INFO, plot=True):
                 if len(cp['config'].get('AUX_FEATURES', [])):
                     args.append(ip_aux.view(1, len(cp['config']['AUX_FEATURES'])))
                 pred = model.predict(*args)
-
+                
                 all_preds.append(pred.view(op_shp).cpu().numpy() * pop_fct)
                 pred_vals.append(pred.view(op_shp).cpu().numpy()[0] * pop_fct)
                 real_vals.append(op.view(op_shp).cpu().numpy()[0] * pop_fct)
@@ -190,7 +190,8 @@ def statewise(model, cp, df, INFO, plot=True):
                     cmp_df['predicted_cases'] = np.NaN
                     cmp_df.loc[i:i+OP_SEQ_LEN-1, 'predicted_cases'] = pred[:, o]
                     ape = np.array(100 * ((cmp_df['actual'] - cmp_df['predicted_cases']).abs() / (cmp_df['actual'].abs() + 1)))
-                    mape.append(ape[~np.isnan(ape)])
+                    ape = ape[~np.isnan(ape)] # remove nans
+                    if len(ape): mape.append(ape)
                     if plot: ax = cmp_df.plot(x='Date', y='predicted_cases', ax=ax, legend=False)
                     i+=1
                 total_acc = np.zeros(OP_SEQ_LEN)
