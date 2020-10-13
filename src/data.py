@@ -59,7 +59,7 @@ def get_statewise_data(weather=False):
         def ts_date(ts):
             return dt.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
         states_df['city'] = states_df.state.apply(state2city)
-        wdf = pd.read_csv('../openweathermap/india_history_new.csv')     
+        wdf = pd.read_csv('../openweathermap/india_history.csv')     
         wdf['date'] = wdf.timestamp.apply(ts_date)
         # normalize pressure and temp
         wdf['temp'] -= 273.15
@@ -135,3 +135,26 @@ def fix_anomalies_owid(df):
     df = df.loc[~df.location.isin(countries_gdp_nan)]
 
     return df
+
+
+def get_state_weather_stats(state_code, start_date, end_date, fn='../openweathermap/india_stats.csv'):
+    assert (start_date < end_date)
+    
+    city = CAPS_INFO.get(state_code)
+    data_df = pd.read_csv(fn, usecols=['city', 'month', 'day', 'temp_mean', 'pressure_mean', 'humidity_mean'])
+    data_df = data_df.loc[data_df.city==city]
+    
+    # normalize pressure and temp
+    data_df['temp_mean'] -= 273.15
+    data_df['temp_mean'] /= 100
+    data_df['humidity_mean'] /= 100
+    data_df['pressure_mean'] /= 1000
+    
+    # setup df from dates
+    df = pd.DataFrame(index=pd.date_range(start_date, end_date))
+    df['month'] = df.index.month
+    df['day'] = df.index.day
+    df['date'] = df.index.strftime("%Y-%m-%d")
+    df.reset_index(drop=True, inplace=True)
+    
+    return df.merge(data_df, on=['month', 'day'], how='left', suffixes=('', '_y')).dropna()

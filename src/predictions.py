@@ -42,7 +42,7 @@ def plot_linechart(df, xcol, ycol, ax=None, title="", show_peak=True):
     
     return ax
 
-def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset, plot=False):
+def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset, plot=False, weather=False):
     """
     Generates predictions, given states data, a model and checkpoint dictionary
     df: dataframe with current data for all states/districts.
@@ -53,12 +53,13 @@ def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset,
     n_days_prediction: number of days to predict
     prediction_offset: number of days from real data to be skipped
     plot(False): whether to plot charts and print logs
+    weather(False): whether to include weather data as input
     """
     IP_SEQ_LEN = cp['config']['DS']['IP_SEQ_LEN']
     OP_SEQ_LEN = cp['config']['DS']['OP_SEQ_LEN']
 
     first_case_date = df['date'].min()
-    n_days_data = len(df.loc[df.state=='KL'].date.unique())
+    n_days_data = (df.loc[df.state=='KL'].date.max() - df.loc[df.state=='KL'].date.min()).days
     assert(n_days_prediction%OP_SEQ_LEN == 0)
 
     agg_days = n_days_data - prediction_offset + n_days_prediction # number of days for plotting agg curve i.e. prediction + actual data 
@@ -84,6 +85,16 @@ def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset,
             child_df['new_recovered'] = child_df['recovered'] - child_df['recovered'].shift(1).fillna(0)
             child_df['new_tests'] = child_df['tested'] - child_df['tested'].shift(1).fillna(0)
             test_data = np.array(child_df[cp['config']['DS']['FEATURES']].rolling(7, center=True, min_periods=1).mean() / pop_fct, dtype=np.float32)
+            
+            if weather:
+                inp_start_date = child_df.date.min()
+                inp_end_date = inp_start_date + dt.timedelta(days=agg_days)
+                weather_df = data.get_state_weather_stats(state, inp_start_date, inp_end_date)
+                weather_cols = [c for c in cp['config']['DS']['FEATURES'] if c in ['temp_mean', 'pressure_mean', 'humidity_mean']]
+                weather_df = weather_df[weather_cols]
+                weather_data = np.array(weather_df, dtype=np.float32)
+                test_data = np.concatenate((test_data, weather_data[:len(test_data)]), axis=1)
+                weather_data = weather_data[len(test_data):]
 
             in_data = test_data[-IP_SEQ_LEN:, cp['config']['IP_FEATURES']]
             out_data = np.ndarray(shape=(0, len(cp['config']['OP_FEATURES'])), dtype=np.float32)
@@ -99,10 +110,14 @@ def generate(df, INFO, model, cp, feature, n_days_prediction, prediction_offset,
                     pred = model.predict(*args).view(OP_SEQ_LEN, len(cp['config']['OP_FEATURES']))
                 except Exception as e:
                     print(state, e)
+                pred_data = pred.cpu().numpy()
+                if weather:
+                    pred_data = np.concatenate((pred_data, weather_data[:OP_SEQ_LEN]), axis=1)
+                    weather_data = weather_data[OP_SEQ_LEN:]
                 if IP_SEQ_LEN == OP_SEQ_LEN:
-                    in_data = pred.cpu().numpy()
+                    in_data = pred_data
                 else:
-                    in_data = np.append(in_data[-IP_SEQ_LEN+OP_SEQ_LEN:, :], pred.cpu().numpy(), axis=0)
+                    in_data = np.append(in_data[-IP_SEQ_LEN+OP_SEQ_LEN:, :], pred_data, axis=0)
                 out_data = np.append(out_data, pred.cpu().numpy(), axis=0)
 
             cn = child['name']
